@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Task Manager</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f4f8;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #4a90e2;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: 50px auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .btn {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #3a7bc8;
+        }
+        .dashboard {
+            display: none;
+        }
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .team-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        .team-card h3 {
+            margin-top: 0;
+            color: #4a90e2;
+        }
+        .member-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .member-list li {
+            margin-bottom: 5px;
+        }
+        .chart-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .attendance-form {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Task Manager</h1>
+    </div>
+    <div class="container">
+        <div id="loginContainer" class="login-container">
+            <h2>Login</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="btn">Login</button>
+            </form>
+        </div>
+        <div id="adminDashboard" class="dashboard">
+            <h2>Admin Dashboard</h2>
+            <button id="logoutBtn" class="btn">Logout</button>
+            <div class="team-grid" id="teamGrid"></div>
+            <div class="chart-container">
+                <h3>Team Performance</h3>
+                <canvas id="performanceChart"></canvas>
+            </div>
+        </div>
+        <div id="employeeDashboard" class="dashboard">
+            <h2>Employee Dashboard</h2>
+            <button id="employeeLogoutBtn" class="btn">Logout</button>
+            <p>Welcome, <span id="employeeName"></span>!</p>
+            <p>Your team: <span id="employeeTeam"></span></p>
+            <div class="attendance-form">
+                <h3>Mark Attendance</h3>
+                <form id="attendanceForm">
+                    <div class="form-group">
+                        <label for="attendanceDate">Date:</label>
+                        <input type="date" id="attendanceDate" required>
+                    </div>
+                    <button type="submit" class="btn">Mark Present</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const users = {
+            admin: { username: 'admin', password: 'admin123', role: 'admin' },
+            john: { username: 'john', password: 'john123', role: 'employee', team: 'Development' },
+            jane: { username: 'jane', password: 'jane123', role: 'employee', team: 'Design' },
+            bob: { username: 'bob', password: 'bob123', role: 'employee', team: 'Marketing' },
+            alice: { username: 'alice', password: 'alice123', role: 'employee', team: 'Sales' }
+        };
+
+        const teams = {
+            Development: ['John Doe', 'Jane Smith', 'Bob Johnson', 'Alice Brown'],
+            Design: ['Mike Wilson', 'Sarah Lee', 'Tom Davis', 'Emily Chen'],
+            Marketing: ['David Kim', 'Lisa Wang', 'Chris Taylor', 'Rachel Green'],
+            Sales: ['Mark Thompson', 'Jessica Lee', 'Ryan Garcia', 'Olivia Martinez']
+        };
+
+        const attendance = {};
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (users[username] && users[username].password === password) {
+                document.getElementById('loginContainer').style.display = 'none';
+                if (users[username].role === 'admin') {
+                    document.getElementById('adminDashboard').style.display = 'block';
+                    renderTeams();
+                    renderPerformanceChart();
+                } else {
+                    document.getElementById('employeeDashboard').style.display = 'block';
+                    document.getElementById('employeeName').textContent = username;
+                    document.getElementById('employeeTeam').textContent = users[username].team;
+                }
+            } else {
+                alert('Invalid username or password');
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+        document.getElementById('employeeLogoutBtn').addEventListener('click', logout);
+
+        document.getElementById('attendanceForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('employeeName').textContent;
+            const date = document.getElementById('attendanceDate').value;
+            if (!attendance[username]) {
+                attendance[username] = [];
+            }
+            attendance[username].push(date);
+            alert('Attendance marked for ' + date);
+        });
+
+        function logout() {
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('adminDashboard').style.display = 'none';
+            document.getElementById('employeeDashboard').style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        function renderTeams() {
+            const teamGrid = document.getElementById('teamGrid');
+            teamGrid.innerHTML = '';
+
+            for (const [teamName, members] of Object.entries(teams)) {
+                const teamCard = document.createElement('div');
+                teamCard.className = 'team-card';
+                teamCard.innerHTML = `
+                    <h3>${teamName} Team</h3>
+                    <ul class="member-list">
+                        ${members.map(member => `<li>${member}</li>`).join('')}
+                    </ul>
+                `;
+                teamGrid.appendChild(teamCard);
+            }
+        }
+
+        function renderPerformanceChart() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(teams),
+                    datasets: [{
+                        label: 'Team Performance',
+                        data: [85, 78, 92, 88], // Example performance scores
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.6)',
+                            'rgba(54, 162, 235, 0.6)',
+                            'rgba(255, 206, 86, 0.6)',
+                            'rgba(75, 192, 192, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
